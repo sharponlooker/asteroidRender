@@ -1,0 +1,322 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <title>First</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link rel=stylesheet href="css/base.css"/>
+</head>
+<body>
+
+<script src="js/Three.js"></script>
+<script src="js/Detector.js"></script>
+<script src="js/Stats.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/KeyboardState.js"></script>
+<script src="js/THREEx.FullScreen.js"></script>
+<script src="js/THREEx.WindowResize.js"></script>
+
+<div id="ThreeJS" style="position: absolute; left:0px; top:0px"></div>
+<script>
+var Sphere = function (sphere) {
+	var self = sphere;
+
+	self.showAxis = false;
+
+	self.rotationRate = sphere.rotationRate || 0.001;
+
+	self.axialTilt = (self.axialTilt || 0) * Math.PI / 180; // in radians
+
+	self.geometry = new THREE.SphereGeometry(self.radius, 60, 30);
+
+	self.rotationAxis = new THREE.Vector3(Math.sin(self.axialTilt), Math.cos(self.axialTilt), 0).normalize();
+
+	if (self.showAxis) {
+		var g = new THREE.Geometry();
+		var delta = self.radius * 0.25;
+		g.vertices = [
+				new THREE.Vector3(self.center.x, self.center.y - self.radius - delta, self.center.z),
+				new THREE.Vector3(self.center.x, self.center.y + self.radius + delta, self.center.z),
+		];
+
+		self.axis = new THREE.Line(g,
+			new THREE.LineBasicMaterial({ color: 0xff0000 })
+		);
+		scene.add(self.axis);
+	}
+
+	self.setup = function() {
+		self.mesh = new THREE.Mesh(self.geometry, self.material);
+		self.mesh.position.set(self.center.x, self.center.y, self.center.z);
+	};
+
+	self.render = function () {
+		self.mesh.rotateOnAxis(self.rotationAxis, self.rotationRate);
+	}
+
+	return self;
+};
+
+var Star = function (star) {
+	var self = new Sphere(star);
+
+	self.texture = THREE.ImageUtils.loadTexture('images/sunmap.jpg');
+
+	self.material = new THREE.MeshBasicMaterial({
+		map: self.texture,
+		transparent: true, opacity: 1,
+	});
+
+	self.setup();
+
+	return self;
+};
+
+var Planet = function (planet) {
+	var self = new Sphere(planet);
+
+	self.texture = THREE.ImageUtils.loadTexture(self.textureFile);
+
+	self.material = new THREE.MeshPhongMaterial({
+		map: self.texture,
+		bumpMap: self.texture,
+		bumpScale: 0.05,
+	});
+
+	self.setup();
+
+	return self;
+};
+
+var Asteroid = function (asteroid) {
+    var self = asteroid;
+
+    self.showAxis = asteroid.showAxis || false;
+
+    self.rotationRate = asteroid.rotationRate || 0.001;
+
+    self.axialTilt = (self.axialTilt || 0) * Math.PI / 180; // in radians
+
+    self.scale = asteroid.scale || { a: 1.0, b: 1.0, c: 1.0 };
+
+    self.geometry = new THREE.SphereGeometry(self.radius, 30, 30);
+    self.geometry.applyMatrix(new THREE.Matrix4().makeScale(self.scale.a, self.scale.b, self.scale.c));
+
+    self.rotationAxis = new THREE.Vector3(Math.sin(self.axialTilt), Math.cos(self.axialTilt), 0).normalize();
+
+    if (self.showAxis) {
+        var g = new THREE.Geometry();
+        var delta = self.radius * 0.25;
+        g.vertices = [
+            new THREE.Vector3(self.center.x,
+                (self.center.y - self.radius - delta) * self.scale.b,
+                self.center.z),
+            new THREE.Vector3(self.center.x,
+                (self.center.y + self.radius + delta) * self.scale.b,
+                self.center.z),
+        ];
+
+        self.axis = new THREE.Line(g,
+            new THREE.LineBasicMaterial({ color: 0xff0000 })
+        );
+        scene.add(self.axis);
+    }
+
+    self.material = new THREE.MeshLambertMaterial({ color: 0xcccccc });
+    self.material.opacity = 0.2;
+
+    self.setup = function () {
+        self.mesh = new THREE.Mesh(self.geometry, self.material);
+        self.mesh.position.set(self.center.x, self.center.y, self.center.z);
+        self.mesh.receiveShadow = true;
+        self.mesh.castShadow = true;
+    };
+
+    self.render = function () {
+        self.mesh.rotateOnAxis(self.rotationAxis, self.rotationRate);
+    }
+
+    self.setup();
+    return self;
+};
+
+// MAIN
+
+var container, scene, camera, renderer, controls, stats, canvas, context, numberOfFrames;
+var pixels;
+var keyboard = new KeyboardState();
+var clock = new THREE.Clock();
+var flux = [];
+const reducer = (accumulator, currentValue) => accumulator + currentValue;
+
+init();
+animate();
+
+// FUNCTIONS 		
+function init() 
+{
+    numberOfFrames = 0;
+
+	// SCENE
+	scene = new THREE.Scene();
+	
+	// CAMERA
+	var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
+	var VIEW_ANGLE = 30, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
+	camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
+	scene.add(camera);
+	camera.position.set(1000,0,0);
+	camera.lookAt(scene.position);	
+	
+	// RENDERER
+	if (Detector.webgl) {
+		renderer = new THREE.WebGLRenderer({ antialias: true });
+	}
+	else {
+		renderer = new THREE.CanvasRenderer();
+	}
+	
+	renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+	container = document.getElementById('ThreeJS');
+	container.appendChild(renderer.domElement);
+	
+	// EVENTS
+	THREEx.WindowResize(renderer, camera);
+	THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
+	
+	// CONTROLS
+	controls = new THREE.OrbitControls(camera, renderer.domElement);
+	
+	// STATS
+	stats = new Stats();
+	stats.domElement.style.position = 'absolute';
+	stats.domElement.style.bottom = '0px';
+	stats.domElement.style.zIndex = 100;
+	container.appendChild(stats.domElement);
+	
+	// LIGHT
+	//scene.add(new THREE.AmbientLight(0x181818));	// "galactic shine"
+	
+	/*var sunLight = new THREE.PointLight(0xffffff, 1.2, FAR);
+	sunLight.position.set(0, 0, 100);
+	scene.add(sunLight);*/
+
+    var asteroid1 = new Asteroid({
+        radius: 40,
+        rotationRate: 0.008,
+        center: new THREE.Vector3(10, 0, 0),
+        showAxis: false,
+        scale: { a: 10.0, b: 2.0, c: 3.0 },
+        //textureFile: 'images/dirt-512.jpg',
+    });
+
+    var sunLight = new THREE.DirectionalLight(0xffffff, 1);
+    sunLight.position.set(0, 0, 10000);
+    sunLight.position.multiplyScalar(1.3);
+    sunLight.castShadow = true;
+  
+    sunLight.shadow.mapSize.width = 1000;
+    sunLight.shadow.mapSize.length = 1000;
+    sunLight.shadow.camera.far = 1000;
+    scene.add(sunLight);
+
+	// SKYBOX
+	/*var skyBoxGeometry = new THREE.CubeGeometry(FAR, FAR, FAR);
+	var skyBoxMaterial = new THREE.MeshBasicMaterial({ color: 0x0, side: THREE.BackSide });
+	var skyBox = new THREE.Mesh(skyBoxGeometry, skyBoxMaterial);
+	scene.add(skyBox);*/
+
+	// HELPERS
+
+	//scene.add(new THREE.AxesHelper(FAR));
+	//scene.add(new THREE.CameraHelper(camera));
+    //scene.add(new THREE.CameraHelper(sunLight.shadow.camera));
+
+	////////////
+	// CUSTOM //
+	////////////
+	
+
+
+	bodies = [];
+
+	/*bodies.push(new Star({
+		radius: 50,
+		rotationRate: 0.001,
+		center: new THREE.Vector3(0, 0, 0),
+	}));*/
+
+	/*bodies.push(new Planet({
+		radius: 10,
+		rotationRate: 0.02,
+		center: new THREE.Vector3(-200, 0, 0),
+		textureFile: 'images/earth-day.jpg',
+		axialTilt: 23.439,
+	}));*/
+
+    bodies.push(asteroid1);
+
+
+    /*asteroid2 = new Asteroid({
+        radius: 20,
+        rotationRate: 0.008,
+        center: new THREE.Vector3(0, 0, 500),
+        showAxis: true,
+        scale: { a: 3.0, b: 2.0, c: 2.0 },
+        //textureFile: 'images/dirt-512.jpg',
+    });
+    bodies.push(asteroid2);*/
+
+    for (i = 0; i < bodies.length; i++) {
+		scene.add(bodies[i].mesh);
+    }
+
+    canvas = document.getElementsByTagName('canvas')[0];
+    context = canvas.getContext('webgl');
+}
+
+function animate() 
+{
+    requestAnimationFrame( animate );
+	render();		
+	update();
+}
+
+function update()
+{
+	controls.update();
+	stats.update();
+}
+
+function render() 
+{
+	for (i = 0; i < bodies.length; i++) {
+		bodies[i].render();
+	}
+	        
+    renderer.render(scene, camera);
+
+    numberOfFrames++;
+
+    if (!pixels) {
+        pixels = new Uint8Array(context.drawingBufferWidth * context.drawingBufferHeight * 4);
+    }
+
+    context.readPixels(
+        0,
+        0,
+        context.drawingBufferWidth,
+        context.drawingBufferHeight,
+        context.RGBA,
+        context.UNSIGNED_BYTE,
+        pixels);
+
+    if (0 == (numberOfFrames % 24)) {
+        flux.push(pixels.reduce(reducer));
+    }
+}
+
+</script>
+
+</body>
+</html>
