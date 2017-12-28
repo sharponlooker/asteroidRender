@@ -4,11 +4,27 @@
     <title>Asteroid Renderer</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <link rel=stylesheet href="css/base.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
 </head>
 <body>
 
-    <div id="ThreeJS" style="position: absolute; left:0px; top:0px"></div>
+    <div class="main">
+        <div class="row" style="height:80%">
+            <div class="col-2">
+                Tools
+            </div>
+            <div class="col-10" id="ThreeJS">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-2" id="statsContainer">
+            </div>
+            <div class="col-10">
+                LC
+            </div>
+        </div>
+    </div>
 
     <script src="js/Three.js"></script>
     <script src="js/Detector.js"></script>
@@ -22,7 +38,7 @@
 
         var CanvasViewModel = function (container, bodies, options) {
 
-            options = options || {};
+            self.options = options || {};
 
             self.container = container;
             self.scene = new THREE.Scene();
@@ -36,7 +52,7 @@
             self.init = function () {
 
                 self.numberOfFrames = 0;
-                var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
+                var SCREEN_WIDTH = self.container.clientWidth, SCREEN_HEIGHT = self.container.clientHeight;
                 var VIEW_ANGLE = 30, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
 
                 self.camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
@@ -46,7 +62,6 @@
                 self.camera.lookAt(self.scene.position);
 
                 if (Detector.webgl) {
-                    console.log('webgl renderer');
                     self.renderer = new THREE.WebGLRenderer({ antialias: true });
                 }
                 else {
@@ -61,6 +76,16 @@
                 THREEx.FullScreen.bindKey({ charCode: 'm'.charCodeAt(0) });
 
                 self.controls = new THREE.OrbitControls(self.camera, self.renderer.domElement);
+
+                if (self.options.statsContainer) {
+                    var stats = new Stats();
+                    stats.domElement.style.position = 'absolute';
+                    stats.domElement.style.bottom = '0px';
+                    stats.domElement.style.zIndex = 100;
+                    statsContainer.appendChild(stats.domElement);
+
+                    self.stats = stats;
+                }
 
                 self.setupLight();
 
@@ -89,7 +114,7 @@
                 requestAnimationFrame(self.animate);
                 self.render();
                 self.controls.update();
-                //self.stats.update();
+                self.stats.update();
             };
 
             self.render = function () {
@@ -189,16 +214,13 @@
 
         var canvasViewModel = new CanvasViewModel(
             document.getElementById('ThreeJS'),
-            bodies
+            bodies,
+            {
+                statsContainer : document.getElementById('statsContainer'),
+            }
         );
 
         function init() {
-            // STATS
-            stats = new Stats();
-            stats.domElement.style.position = 'absolute';
-            stats.domElement.style.bottom = '0px';
-            stats.domElement.style.zIndex = 100;
-            //container.appendChild(stats.domElement);
 
             // HELPERS
 
@@ -207,11 +229,6 @@
             //scene.add(new THREE.CameraHelper(sunLight.shadow.camera));
 
         }
-
-
-
-
-
     </script>
 
 </body>
