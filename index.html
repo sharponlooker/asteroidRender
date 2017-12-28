@@ -21,7 +21,7 @@
             <div class="col-2" id="statsContainer">
             </div>
             <div class="col-10">
-                LC
+                <canvas id="lightcurveChart" style="width: 100%; height:100%"></canvas>
             </div>
         </div>
     </div>
@@ -37,17 +37,18 @@
         const reducer = (accumulator, currentValue) => accumulator + currentValue;
 
         var CanvasViewModel = function (container, bodies, options) {
+            var self = this;
 
             self.options = options || {};
 
             self.container = container;
             self.scene = new THREE.Scene();
 
-            self.flux = [];
-
             self.cameraPosition = options.cameraPosition || new THREE.Vector3(1000, 0, 0);
 
             self.bodies = bodies || [];
+
+            self.frameListeners = options.frameListeners || [];
 
             self.init = function () {
 
@@ -79,7 +80,6 @@
 
                 if (self.options.statsContainer) {
                     var stats = new Stats();
-                    stats.domElement.style.position = 'absolute';
                     stats.domElement.style.bottom = '0px';
                     stats.domElement.style.zIndex = 100;
                     statsContainer.appendChild(stats.domElement);
@@ -89,7 +89,7 @@
 
                 self.setupLight();
 
-                self.container.appendChild(renderer.domElement);
+                self.container.appendChild(self.renderer.domElement);
                 self.webglContext = self.renderer.domElement.getContext('webgl');
 
                 for (i = 0; i < self.bodies.length; i++) {
@@ -126,25 +126,48 @@
 
                 self.numberOfFrames++;
 
-                if (!self.pixels) {
-                    self.pixels = new Uint8Array(self.webglContext.drawingBufferWidth * self.webglContext.drawingBufferHeight * 4);
-                }
-
                 if (0 == (self.numberOfFrames % 24)) {
-                    self.webglContext.readPixels(
-                        0,
-                        0,
-                        self.webglContext.drawingBufferWidth,
-                        self.webglContext.drawingBufferHeight,
-                        self.webglContext.RGBA,
-                        self.webglContext.UNSIGNED_BYTE,
-                        self.pixels);
-
-                    self.flux.push(self.pixels.reduce(reducer));
+                    self.frameListeners.forEach(function (listener) {
+                        listener.newFrameCheckpoint(self); 
+                    })
                 }
             }
+
             self.init();
             self.animate();
+
+            return self;
+        };
+
+        var LightcurveViewModel = function (container) {
+            var self = this;
+
+            self.container = container;
+
+            self.flux = [];
+
+            self.canvasContext = self.container.getContext('2d');
+
+            self.newFrameCheckpoint = function (canvasViewModel) {
+                var canvasContext = canvasViewModel.webglContext;
+
+                if (!self.pixels) {
+                    self.pixels = new Uint8Array(canvasContext.drawingBufferWidth
+                        * canvasContext.drawingBufferHeight
+                        * 4);
+                }
+
+                canvasContext.readPixels(
+                    0,
+                    0,
+                    canvasContext.drawingBufferWidth,
+                    canvasContext.drawingBufferHeight,
+                    canvasContext.RGBA,
+                    canvasContext.UNSIGNED_BYTE,
+                    self.pixels);
+
+                self.flux.push(self.pixels.reduce(reducer));
+            };
 
             return self;
         };
@@ -212,11 +235,14 @@
             //textureFile: 'images/dirt-512.jpg',
         }));
 
+        var lightcurveViewModel = new LightcurveViewModel(document.getElementById('lightcurveChart'));
+
         var canvasViewModel = new CanvasViewModel(
             document.getElementById('ThreeJS'),
             bodies,
             {
-                statsContainer : document.getElementById('statsContainer'),
+                statsContainer: document.getElementById('statsContainer'),
+                frameListeners: [lightcurveViewModel],
             }
         );
 
