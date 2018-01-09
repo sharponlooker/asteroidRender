@@ -9,20 +9,30 @@
 </head>
 <body>
 
-    <div class="main">
-        <div class="row" style="height: 20%">
-            <div class="col-2" id="statsContainer">
+    <div class="main container-fluid">
+        <div class="row">
+            <div class="col-2">
+                <div class="row" style="height: 90vh">
+                    <div class="col-12">
+                        Tools
+                    </div>
+                </div>
+                <div class="row" style="height: 10vh">
+                    <div class="col-12" id="statsContainer">
+                    </div>
+                </div>
             </div>
             <div class="col-10">
-                <canvas id="lightcurveChart" style="width: 75%; height: 95%;"></canvas>
-            </div>
-        </div>
-        <div class="row" style="height: 80%">
-            <div class="col-2">
-                Tools
-            </div>
-            <div class="col-10" id="ThreeJS">
-            </div>
+                <div class="row" style="height: 20vh">
+                    <div class="col-12">
+                        <canvas id="lightcurveChart" style="width: 75%; height: 95%;"></canvas>
+                    </div>
+                </div>
+                <div class="row" style="height: 80vh">
+                    <div class="col-12" id="ThreeJS">
+                    </div>
+                </div>
+             </div>
         </div>
     </div>
 
@@ -305,8 +315,7 @@
             rotationRate: 0.008,
             center: new THREE.Vector3(10, 0, 0),
             showAxis: false,
-            scale: { a: 10.0, b: 2.0, c: 3.0 },
-            //textureFile: 'images/dirt-512.jpg',
+            scale: { a: 10.0, b: 1.0, c: 1.0 },
         }));
 
         var lightcurveViewModel = new LightcurveViewModel(document.getElementById('lightcurveChart'));
