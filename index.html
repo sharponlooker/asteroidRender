@@ -5,7 +5,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <link rel="stylesheet" href="css/base.css" />
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css" integrity="sha384-Zug+QiDoJOrZ5t4lssLdxGhVrurbmBWopoEl+M6BdEfwnCJZtKxi1KgxUyJq13dy" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
 <body>
 
@@ -13,8 +14,17 @@
         <div class="row">
             <div class="col-2">
                 <div class="row" style="height: 90vh">
-                    <div class="col-12">
-                        Tools
+                    <div class="col-12" id="toolbar">
+                        <br />
+                        <button class="btn" data-bind="click: toggleAnimation">
+                            <span class="fa" aria-hidden="true" style="vertical-align: middle;"
+                                  data-bind="css: { 'fa-pause': !animationPaused(), 'fa-play': animationPaused }"/>
+                        </button>
+                        <button class="btn" data-bind="click: resetAnimation">
+                            <span class="fa fa-refresh" aria-hidden="true" style="vertical-align: middle;" />
+                        </button>
+                        <br /><br />
+                        <label>a:</label><input type="text" style="width: 40px" data-bind="value: a" />
                     </div>
                 </div>
                 <div class="row" style="height: 10vh">
@@ -44,20 +54,24 @@
     <script src="js/THREEx.FullScreen.js"></script>
     <script src="js/THREEx.WindowResize.js"></script>
     <script src="js/Chart.min.js"></script>
+    <script src="js/knockout.js"></script>
     <script>
         const reducer = (accumulator, currentValue) => accumulator + currentValue;
 
-        var CanvasViewModel = function (container, bodies, options) {
+        var CanvasViewModel = function (container, options) {
             var self = this;
 
             self.options = options || {};
+
+            self.paused = true;
+            self.initialized = false;
 
             self.container = container;
             self.scene = new THREE.Scene();
 
             self.cameraPosition = options.cameraPosition || new THREE.Vector3(1000, 0, 0);
 
-            self.bodies = bodies || [];
+            self.bodies = [];
 
             self.frameListeners = options.frameListeners || [];
 
@@ -103,9 +117,15 @@
                 self.container.appendChild(self.renderer.domElement);
                 self.webglContext = self.renderer.domElement.getContext('webgl');
 
-                for (i = 0; i < self.bodies.length; i++) {
-                    self.scene.add(self.bodies[i].mesh);
-                }
+                self.drawBodies();
+
+                self.initialized = true;
+            };
+
+            self.drawBodies = function () {
+                self.bodies.forEach(function (x, i) {
+                    self.scene.add(x.mesh);
+                });
             };
 
             self.setupLight = function () {
@@ -122,6 +142,8 @@
             };
 
             self.animate = function () {
+                if (self.paused) { return; }
+
                 requestAnimationFrame(self.animate);
                 self.render();
                 self.controls.update();
@@ -143,9 +165,6 @@
                     })
                 }
             }
-
-            self.init();
-            self.animate();
 
             return self;
         };
@@ -240,7 +259,7 @@
                 self.chart.data.labels.push(self.t++);
                 self.chart.data.datasets[0].data.push(count);
                 self.chart.update();
-                self.flux.push(count);
+                self.flux.push({ t: new Date().getTime(), val: count});
             };
 
             return self;
@@ -309,26 +328,90 @@
             return self;
         };
 
-        var bodies = [];
-        bodies.push(new Asteroid({
-            radius: 20,
-            rotationRate: 0.008,
-            center: new THREE.Vector3(10, 0, 0),
-            showAxis: false,
-            scale: { a: 10.0, b: 1.0, c: 1.0 },
-        }));
+        var ToolbarViewModel = function (canvasViewModel, lightcurveViewModel) {
+            var self = this;
+
+            self.canvasViewModel = canvasViewModel;
+            self.lightcurveViewModel = lightcurveViewModel;
+			
+            self.body = null;
+
+            self.a = ko.observable(10.0);
+			
+            self.setupBodies = function () {
+                self.body = new Asteroid({
+                    radius: 20,
+                    rotationRate: 0.008,
+                    center: new THREE.Vector3(10, 0, 0),
+                    showAxis: false,
+                    scale: { a: self.a(), b: 1.0, c: 1.0 },
+                });
+            };
+
+            self.animationPaused = ko.observable(false);
+            
+            self.animationPauseTrigger = ko.computed(function() {
+                var paused = self.animationPaused();
+                if (paused == self.canvasViewModel.paused) { return; }
+
+                self.canvasViewModel.paused = paused;
+                if (!paused && self.canvasViewModel.initialized) {
+                    self.canvasViewModel.animate();
+                }
+            });
+
+            self.toggleAnimation = function () {
+                self.animationPaused(!(self.animationPaused()));
+            };
+
+            self.startAnimation = function () {
+                if (!self.body) {
+                    self.setupBodies();
+                }
+
+				self.canvasViewModel.bodies = [self.body];
+				self.canvasViewModel.init();
+				self.canvasViewModel.animate();
+			};
+
+			self.resetAnimation = function () {
+			    var scene = self.canvasViewModel.scene;
+
+			    self.animationPaused(true);
+
+			    self.canvasViewModel.bodies.forEach(function (x, i) {
+			        scene.remove(x.mesh);
+			    });
+
+			    self.setupBodies();
+
+			    self.canvasViewModel.bodies = [self.body];
+			    self.canvasViewModel.drawBodies();
+			    self.animationPaused(false);
+			};
+			
+            return self;
+        };
+
+
 
         var lightcurveViewModel = new LightcurveViewModel(document.getElementById('lightcurveChart'));
 
         var canvasViewModel = new CanvasViewModel(
             document.getElementById('ThreeJS'),
-            bodies,
             {
                 statsContainer: document.getElementById('statsContainer'),
                 frameListeners: [lightcurveViewModel],
             }
         );
 
+		var viewModel = new ToolbarViewModel(canvasViewModel, lightcurveViewModel);
+
+		ko.applyBindings(viewModel, document.getElementById('toolbar'));
+
+		viewModel.startAnimation();
+		
+		
         function init() {
 
             // HELPERS
