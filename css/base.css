@@ -7,8 +7,20 @@ body
 	overflow: hidden;
 }
 
-body, html, main {
+body, html, .main {
 	height: 100%;
 	padding-left: 0px;
 	padding-right: 0px;
+}
+
+.form-inline label {
+	margin: 4px;
+}
+
+.btn-toolbar .btn {
+	margin-right: 5px;
+}
+
+.btn-toolbar .btn:last-child {
+	margin-right: 0;
 }

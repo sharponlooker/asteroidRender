@@ -16,15 +16,21 @@
                 <div class="row" style="height: 90vh">
                     <div class="col-12" id="toolbar">
                         <br />
-                        <button class="btn" data-bind="click: toggleAnimation">
-                            <span class="fa" aria-hidden="true" style="vertical-align: middle;"
-                                  data-bind="css: { 'fa-pause': !animationPaused(), 'fa-play': animationPaused }"/>
-                        </button>
-                        <button class="btn" data-bind="click: resetAnimation">
-                            <span class="fa fa-refresh" aria-hidden="true" style="vertical-align: middle;" />
-                        </button>
+                        <div class="btn-toolbar d-flex justify-content-between" role="toolbar">
+                            <button class="btn btn-lg" data-bind="click: toggleAnimation">
+                                <span class="fa" aria-hidden="true" style="vertical-align: middle;"
+                                      data-bind="css: { 'fa-pause': !animationPaused(), 'fa-play': animationPaused }" />
+                            </button>
+                            <button class="btn btn-lg" data-bind="click: resetAnimation">
+                                <span class="fa fa-refresh" aria-hidden="true" style="vertical-align: middle;" />
+                            </button>
+                        </div>
                         <br /><br />
-                        <label>a:</label><input type="text" style="width: 40px" data-bind="value: a" />
+                        <div class="form-inline input-group input-group-sm" role="form">
+                            <label>a: </label> <input class="form-control input-sm" autofocus type="text" data-bind="value: a" />
+                            <label>b: </label> <input class="form-control input-sm" autofocus type="text" data-bind="value: b" />
+                            <label>c: </label> <input class="form-control input-sm" autofocus type="text" data-bind="value: c" />
+                        </div>
                     </div>
                 </div>
                 <div class="row" style="height: 10vh">
@@ -279,7 +285,7 @@
             self.scale = asteroid.scale || { a: 1.0, b: 1.0, c: 1.0 };
 
             self.geometry = new THREE.SphereGeometry(self.radius, 30, 30);
-            self.geometry.applyMatrix(new THREE.Matrix4().makeScale(self.scale.a, self.scale.b, self.scale.c));
+            self.geometry.applyMatrix(new THREE.Matrix4().makeScale(self.scale.a, self.scale.c, self.scale.b));
 
             self.rotationAxis = new THREE.Vector3(Math.sin(self.axialTilt), Math.cos(self.axialTilt), 0).normalize();
             //self.rotationAxis = new THREE.Vector3(10, 2, 5).normalize();
@@ -337,14 +343,16 @@
             self.body = null;
 
             self.a = ko.observable(10.0);
-			
+            self.b = ko.observable(1.0);
+            self.c = ko.observable(1.0);
+
             self.setupBodies = function () {
                 self.body = new Asteroid({
                     radius: 20,
                     rotationRate: 0.008,
                     center: new THREE.Vector3(10, 0, 0),
                     showAxis: false,
-                    scale: { a: self.a(), b: 1.0, c: 1.0 },
+                    scale: { a: parseFloat(self.a()), b: parseFloat(self.b()), c: parseFloat(self.c()) },
                 });
             };
 
