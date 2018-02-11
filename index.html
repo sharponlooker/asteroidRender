@@ -21,7 +21,7 @@
                                 <span class="fa" aria-hidden="true" style="vertical-align: middle;"
                                       data-bind="css: { 'fa-pause': !animationPaused(), 'fa-play': animationPaused }" />
                             </button>
-                            <button class="btn btn-lg" data-bind="click: resetAnimation">
+                            <button class="btn btn-lg" data-bind="click: resetAnimation" title="Reset animation">
                                 <span class="fa fa-refresh" aria-hidden="true" style="vertical-align: middle;" />
                             </button>
                         </div>
@@ -34,11 +34,16 @@
                         <br /><br />
                         <ul class="nav nav-tabs">
                             <li class="nav-item">
-                                <a href="#" class="nav-link" data-bind="click: function() { showAdvancedControls(!showAdvancedControls()) }">Advanced</a>
+                                <a href="#" class="nav-link" title="Advanced options" data-bind="click: function() { showAdvancedControls(!showAdvancedControls()) }">Advanced</a>
                             </li>
                         </ul>
                         <div data-bind="visible: showAdvancedControls">
-                            <input id="mustCollectLightcurveData" type="checkbox" data-bind="checked: mustCollectLightcurveData" /> <label for="mustCollectLightcurveData"><small>Collect lightcurve data</small></label>
+                            <br />
+                            <input id="isTumbler" type="checkbox" data-bind="checked: isTumbler" /> <label for="isTumbler" title="Apply a random tumbling to the rotation after reseting the animation"><small>Random tumble</small></label>
+                            <br />
+                            <input id="mustResetLightcurve" type="checkbox" data-bind="checked: mustResetLightcurve" /> <label for="mustResetLightcurve" title="Clear the current light curve after reseting the animation"><small>Reset light curve</small></label>
+                            <br />
+                            <input id="mustCollectLightcurveData" type="checkbox" data-bind="checked: mustCollectLightcurveData" /> <label for="mustCollectLightcurveData" title="Collect light curve data so that it can be exported after reseting the animation"><small>Collect lightcurve data</small></label>
                             <br />
                             <button class="btn btn-sm" data-bind="click: exportLightcurve">Export lightcurve</button>
                             <br /><br />
@@ -76,6 +81,12 @@
     <script src="js/knockout.js"></script>
     <script>
         const reducer = (accumulator, currentValue) => accumulator + currentValue;
+
+        function getRandomInt(min, max) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        };
 
         var CanvasViewModel = function (container, options) {
             var self = this;
@@ -308,8 +319,9 @@
             self.geometry = new THREE.SphereGeometry(self.radius, 30, 30);
             self.geometry.applyMatrix(new THREE.Matrix4().makeScale(self.scale.a, self.scale.c, self.scale.b));
 
-            self.rotationAxis = new THREE.Vector3(Math.sin(self.axialTilt), Math.cos(self.axialTilt), 0).normalize();
-            //self.rotationAxis = new THREE.Vector3(10, 2, 5).normalize();
+            self.rotationAxis = asteroid.randomTumble ?
+                new THREE.Vector3(getRandomInt(0,20), getRandomInt(0,20), getRandomInt(0,20)).normalize()
+                : new THREE.Vector3(Math.sin(self.axialTilt), Math.cos(self.axialTilt), 0).normalize();
 
             if (self.textureFile) {
                 self.texture = THREE.ImageUtils.loadTexture(self.textureFile);
@@ -372,6 +384,9 @@
             self.mustCollectLightcurveData = ko.observable(false);
             self.lightcurveData = ko.observable('');
 
+            self.isTumbler = ko.observable(false);
+            self.mustResetLightcurve = ko.observable(false);
+
             self.setupBodies = function () {
                 self.body = new Asteroid({
                     radius: 20,
@@ -379,6 +394,7 @@
                     center: new THREE.Vector3(10, 0, 0),
                     showAxis: false,
                     scale: { a: parseFloat(self.a()), b: parseFloat(self.b()), c: parseFloat(self.c()) },
+                    randomTumble: self.isTumbler(),
                 });
             };
 
@@ -423,6 +439,10 @@
 
 			    self.lightcurveViewModel.resetFlux();
 			    self.lightcurveViewModel.mustCollectLightcurveData = self.mustCollectLightcurveData();
+
+			    if (self.mustResetLightcurve()) {
+			        self.lightcurveViewModel.chart.data.labels = [];
+			    }
 
 			    self.canvasViewModel.bodies = [self.body];
 			    self.canvasViewModel.drawBodies();
