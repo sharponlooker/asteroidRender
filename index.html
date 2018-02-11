@@ -31,6 +31,13 @@
                             <label>b: </label> <input class="form-control input-sm" autofocus type="text" data-bind="value: b" />
                             <label>c: </label> <input class="form-control input-sm" autofocus type="text" data-bind="value: c" />
                         </div>
+                        <br /><br />
+                        <label data-bind="click: function() { showAdvancedControls(!showAdvancedControls()) }">Advanced</label>
+                        <div data-bind="visible: showAdvancedControls">
+                            <input id="mustCollectLightcurveData" type="checkbox" data-bind="checked: mustCollectLightcurveData" /><label for="mustCollectLightcurveData">Collect lightcurve data</label>
+                            <button class="btn btn-lg" data-bind="click: exportLightcurve">Export lightcurve</button>
+                            <textarea data-bind="text: lightcurveData"></textarea>
+                        </div>
                     </div>
                 </div>
                 <div class="row" style="height: 10vh">
@@ -184,7 +191,13 @@
 
             self.container = container;
 
-            self.flux = [];
+            self.mustCollectLightcurveData = false;
+
+            self.resetFlux = function () {
+                self.flux = [];
+            }
+
+            self.resetFlux();
 
             self.canvasContext = self.container.getContext('2d');
 
@@ -265,7 +278,9 @@
                 self.chart.data.labels.push(self.t++);
                 self.chart.data.datasets[0].data.push(count);
                 self.chart.update();
-                self.flux.push({ t: new Date().getTime(), val: count});
+                if (self.mustCollectLightcurveData) {
+                    self.flux.push(count) //{ t: new Date().getTime(), val: count});
+                }
             };
 
             return self;
@@ -342,9 +357,14 @@
 			
             self.body = null;
 
-            self.a = ko.observable(10.0);
-            self.b = ko.observable(1.0);
+            self.a = ko.observable(8.0);
+            self.b = ko.observable(3.0);
             self.c = ko.observable(1.0);
+
+            self.showAdvancedControls = ko.observable(false);
+
+            self.mustCollectLightcurveData = ko.observable(false);
+            self.lightcurveData = ko.observable('');
 
             self.setupBodies = function () {
                 self.body = new Asteroid({
@@ -377,6 +397,8 @@
                     self.setupBodies();
                 }
 
+                self.lightcurveViewModel.mustCollectLightcurveData = self.mustCollectLightcurveData();
+
 				self.canvasViewModel.bodies = [self.body];
 				self.canvasViewModel.init();
 				self.canvasViewModel.animate();
@@ -393,11 +415,18 @@
 
 			    self.setupBodies();
 
+			    self.lightcurveViewModel.resetFlux();
+			    self.lightcurveViewModel.mustCollectLightcurveData = self.mustCollectLightcurveData();
+
 			    self.canvasViewModel.bodies = [self.body];
 			    self.canvasViewModel.drawBodies();
 			    self.animationPaused(false);
 			};
 			
+			self.exportLightcurve = function () {
+			    self.lightcurveData(self.lightcurveViewModel.flux);
+			};
+
             return self;
         };
 
