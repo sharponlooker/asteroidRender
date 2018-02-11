@@ -32,10 +32,16 @@
                             <label>c: </label> <input class="form-control input-sm" autofocus type="text" data-bind="value: c" />
                         </div>
                         <br /><br />
-                        <label data-bind="click: function() { showAdvancedControls(!showAdvancedControls()) }">Advanced</label>
+                        <ul class="nav nav-tabs">
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-bind="click: function() { showAdvancedControls(!showAdvancedControls()) }">Advanced</a>
+                            </li>
+                        </ul>
                         <div data-bind="visible: showAdvancedControls">
-                            <input id="mustCollectLightcurveData" type="checkbox" data-bind="checked: mustCollectLightcurveData" /><label for="mustCollectLightcurveData">Collect lightcurve data</label>
-                            <button class="btn btn-lg" data-bind="click: exportLightcurve">Export lightcurve</button>
+                            <input id="mustCollectLightcurveData" type="checkbox" data-bind="checked: mustCollectLightcurveData" /> <label for="mustCollectLightcurveData"><small>Collect lightcurve data</small></label>
+                            <br />
+                            <button class="btn btn-sm" data-bind="click: exportLightcurve">Export lightcurve</button>
+                            <br /><br />
                             <textarea data-bind="text: lightcurveData"></textarea>
                         </div>
                     </div>
