@@ -370,21 +370,27 @@
         var ToolbarViewModel = function (canvasViewModel, lightcurveViewModel) {
             var self = this;
 
+            self.urlParams = { 'get': function (x) { return null; } };
+
+            if ('function' == typeof (URL)) {
+                self.urlParams = new URL(window.location).searchParams;
+            }
+
             self.canvasViewModel = canvasViewModel;
             self.lightcurveViewModel = lightcurveViewModel;
 			
             self.body = null;
 
-            self.a = ko.observable(8.0);
-            self.b = ko.observable(3.0);
-            self.c = ko.observable(1.0);
+            self.a = ko.observable(self.urlParams.get('a') || 8.0);
+            self.b = ko.observable(self.urlParams.get('b') || 3.0);
+            self.c = ko.observable(self.urlParams.get('c') || 1.0);
 
-            self.showAdvancedControls = ko.observable(false);
+            self.showAdvancedControls = ko.observable(self.urlParams.get('showAdvanced') || false);
 
             self.mustCollectLightcurveData = ko.observable(false);
             self.lightcurveData = ko.observable('');
 
-            self.isTumbler = ko.observable(false);
+            self.isTumbler = ko.observable(self.urlParams.get('isTumbler') || false);
             self.mustResetLightcurve = ko.observable(false);
 
             self.setupBodies = function () {
