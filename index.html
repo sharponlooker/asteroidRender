@@ -26,7 +26,13 @@
                             </button>
                         </div>
                         <br /><br />
-                        <div class="form-inline input-group input-group-sm" role="form">
+                        <div class="btn-toolbar d-flex justify-content-between" role="toolbar">
+                            <button class="btn btn-sm" data-bind="click: selectEllipsoidModel">Ellipsoid</button>
+                            <button class="btn btn-sm" data-bind="click: selectContactBinaryModel">Contact binary</button>
+                        </div>                            
+                        <br /><br />
+                        <div class="form-inline input-group input-group-sm" role="form"
+                             data-bind="visible: model() == 'ellipsoid'">
                             <label>a: </label> <input class="form-control input-sm" autofocus type="text" data-bind="value: a" />
                             <label>b: </label> <input class="form-control input-sm" autofocus type="text" data-bind="value: b" />
                             <label>c: </label> <input class="form-control input-sm" autofocus type="text" data-bind="value: c" />
@@ -401,18 +407,17 @@
 
             self.renderShadows = true;
 
-            // TODO: experimenting with shape as for 3752 Camillo https://twitter.com/AreciboRadar/status/966158518272385030
-            // change default cameraPosition to: new THREE.Vector3(3, -542, 93);
+            // TODO: hardcoded to 67P lookalike, no "neck"
 
             self.lobe1 = new THREE.Mesh(new THREE.SphereGeometry(40, 30, 30), self.material);
-            self.lobe1.applyMatrix(new THREE.Matrix4().makeScale(2.2, 0.5, 1));
-            self.lobe1.position.set(-50, 0, 0);
+            self.lobe1.applyMatrix(new THREE.Matrix4().makeScale(3, 1.2, 1));
+            self.lobe1.position.set(0, 0, 0);
             self.lobe1.castShadow = self.lobe1.receiveShadow = true;
 
-            self.lobe2 = new THREE.Mesh(new THREE.SphereGeometry(40, 30, 30), self.material);
-            self.lobe2.applyMatrix(new THREE.Matrix4().makeScale(1.6, 0.5, 1));
-            self.lobe2.position.set(30, 0, 30);
-            self.lobe2.rotation.y = THREE.Math.degToRad(90);
+            self.lobe2 = new THREE.Mesh(new THREE.SphereGeometry(30, 30, 30), self.material);
+            self.lobe2.applyMatrix(new THREE.Matrix4().makeScale(2.4, 1.1, 1));
+            self.lobe2.position.set(30, 70, 0);
+            //self.lobe2.rotation.y = THREE.Math.degToRad(90);
             self.lobe2.castShadow = self.lobe2.receiveShadow = true;
 
 
@@ -482,23 +487,38 @@
             self.isTumbler = ko.observable(self.urlParams.get('isTumbler') || false);
             self.mustResetLightcurve = ko.observable(false);
 
+            self.model = ko.observable(self.urlParams.get('model') || 'ellipsoid');
+
             self.setupBodies = function () {
-                self.body = new Ellipsoid({
-                    radius: 20,
-                    rotationRate: 0.008,
-                    center: new THREE.Vector3(0, 0, 0),
-                    showAxes: false,
-                    scale: { a: parseFloat(self.a()), b: parseFloat(self.b()), c: parseFloat(self.c()) },
-                    randomTumble: self.isTumbler(),
-                });
-                /*self.body = new ContactBinary({
-                    radius: 20,
-                    rotationRate: 0.008,
-                    center: new THREE.Vector3(0, 0, 0),
-                    showAxes: false,
-                    scale: { a: parseFloat(self.a()), b: parseFloat(self.b()), c: parseFloat(self.c()) },
-                    randomTumble: self.isTumbler(),
-                });*/
+                if ('contactBinary' == self.model()) {
+                    self.body = new ContactBinary({
+                        radius: 20,
+                        rotationRate: 0.008,
+                        center: new THREE.Vector3(0, 0, 0),
+                        showAxes: false,
+                        scale: { a: parseFloat(self.a()), b: parseFloat(self.b()), c: parseFloat(self.c()) },
+                        randomTumble: self.isTumbler(),
+                    });
+                } else {
+                    self.body = new Ellipsoid({
+                        radius: 20,
+                        rotationRate: 0.008,
+                        center: new THREE.Vector3(0, 0, 0),
+                        showAxes: false,
+                        scale: { a: parseFloat(self.a()), b: parseFloat(self.b()), c: parseFloat(self.c()) },
+                        randomTumble: self.isTumbler(),
+                    });
+                }
+            };
+
+            self.selectEllipsoidModel = function () {
+                self.model('ellipsoid');
+                self.resetAnimation();
+            };
+
+            self.selectContactBinaryModel = function () {
+                self.model('contactBinary');
+                self.resetAnimation();
             };
 
             self.animationPaused = ko.observable(false);
