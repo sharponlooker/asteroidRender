@@ -39,11 +39,11 @@
                         </ul>
                         <div data-bind="visible: showAdvancedControls">
                             <br />
-                            <input id="isTumbler" type="checkbox" data-bind="checked: isTumbler" /> <label for="isTumbler" title="Apply a random tumbling to the rotation after reseting the animation"><small>Random tumble</small></label>
+                            <input id="isTumbler" type="checkbox" data-bind="checked: isTumbler" /> <label for="isTumbler" title="Rotate around a random axis after resetting the animation"><small>Random rotation axis</small></label>
                             <br />
-                            <input id="mustResetLightcurve" type="checkbox" data-bind="checked: mustResetLightcurve" /> <label for="mustResetLightcurve" title="Clear the current light curve after reseting the animation"><small>Reset light curve</small></label>
+                            <input id="mustResetLightcurve" type="checkbox" data-bind="checked: mustResetLightcurve" /> <label for="mustResetLightcurve" title="Clear the current light curve after resetting the animation"><small>Reset light curve</small></label>
                             <br />
-                            <input id="mustCollectLightcurveData" type="checkbox" data-bind="checked: mustCollectLightcurveData" /> <label for="mustCollectLightcurveData" title="Collect light curve data so that it can be exported after reseting the animation"><small>Collect lightcurve data</small></label>
+                            <input id="mustCollectLightcurveData" type="checkbox" data-bind="checked: mustCollectLightcurveData" /> <label for="mustCollectLightcurveData" title="Collect light curve data so that it can be exported after resetting the animation"><small>Collect lightcurve data</small></label>
                             <br />
                             <button class="btn btn-sm" data-bind="click: exportLightcurve">Export lightcurve</button>
                             <br /><br />
@@ -105,6 +105,8 @@
 
             self.frameListeners = options.frameListeners || [];
 
+            self.renderShadows = options.renderShadows || false;
+
             self.init = function () {
 
                 self.numberOfFrames = 0;
@@ -127,6 +129,11 @@
 
                 self.renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
 
+                if (self.renderShadows) {
+                    self.renderer.shadowMap.enabled = true;
+                    self.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                };
+
                 // events
                 THREEx.WindowResize(self.renderer, self.camera);
                 THREEx.FullScreen.bindKey({ charCode: 'm'.charCodeAt(0) });
@@ -142,6 +149,10 @@
                     self.stats = stats;
                 }
 
+                if (self.options.showAxes) {
+                    self.scene.add(new THREE.AxesHelper(FAR));
+                }
+
                 self.setupLight();
 
                 self.container.appendChild(self.renderer.domElement);
@@ -155,20 +166,35 @@
             self.drawBodies = function () {
                 self.bodies.forEach(function (x, i) {
                     self.scene.add(x.mesh);
+                    if (x.showAxes) {
+                        self.scene.add(x.axis);
+                    }
                 });
             };
 
             self.setupLight = function () {
 
                 self.light = new THREE.DirectionalLight(0xffffff, 1);
-                self.light.position.set(0, 0, 10000);
-                self.light.position.multiplyScalar(1.3);
+                self.light.position.set(0, 0, 1000);
+                //self.light.position.multiplyScalar(1.3);
                 self.light.castShadow = true;
 
-                self.light.shadow.mapSize.width = 1000;
-                self.light.shadow.mapSize.length = 1000;
-                self.light.shadow.camera.far = 1000;
+                self.light.shadow.bias = -0.1;
+
+
+                self.light.shadow.mapSize.width = 500;
+                self.light.shadow.mapSize.height = 500;
+                self.light.shadow.camera.left = -250;
+                self.light.shadow.camera.right = 250;
+                self.light.shadow.camera.top = -250;
+                self.light.shadow.camera.bottom = 250;
+                self.light.shadow.camera.near = 0;
+                self.light.shadow.camera.far = 2000;
                 self.scene.add(self.light);
+
+                //self.scene.add(new THREE.AmbientLight(0xffffff, 0.1));
+
+                //self.scene.add(new THREE.CameraHelper(self.light.shadow.camera));
             };
 
             self.animate = function () {
@@ -303,31 +329,20 @@
             return self;
         };
 
-        var Asteroid = function (asteroid) {
+        var DefaultBody = function (asteroid) {
             var self = asteroid;
 
+            self.renderShadows = false;
             self.texture = null;
-
-            self.showAxis = asteroid.showAxis || false;
-
+            self.showAxes = asteroid.showAxes || false;
             self.rotationRate = asteroid.rotationRate || 0.001;
-
-            self.axialTilt = (self.axialTilt || 0) * Math.PI / 180; // in radians
-
-            self.scale = asteroid.scale || { a: 1.0, b: 1.0, c: 1.0 };
-
-            self.geometry = new THREE.SphereGeometry(self.radius, 30, 30);
-            self.geometry.applyMatrix(new THREE.Matrix4().makeScale(self.scale.a, self.scale.c, self.scale.b));
-
-            self.rotationAxis = asteroid.randomTumble ?
-                new THREE.Vector3(getRandomInt(0,20), getRandomInt(0,20), getRandomInt(0,20)).normalize()
-                : new THREE.Vector3(Math.sin(self.axialTilt), Math.cos(self.axialTilt), 0).normalize();
+            self.axialTilt = THREE.Math.degToRad(self.axialTilt || 0);
 
             if (self.textureFile) {
                 self.texture = THREE.ImageUtils.loadTexture(self.textureFile);
             }
 
-            if (self.showAxis) {
+            if (self.showAxes) {
                 var g = new THREE.Geometry();
                 var delta = self.radius * 0.25;
                 g.vertices = [
@@ -342,7 +357,6 @@
                 self.axis = new THREE.Line(g,
                     new THREE.LineBasicMaterial({ color: 0xff0000 })
                 );
-                scene.add(self.axis);
             }
 
             self.material = new THREE.MeshLambertMaterial({
@@ -352,6 +366,25 @@
 
             self.material.opacity = 0.2;
 
+            self.render = function () {
+                self.mesh.rotateOnAxis(self.rotationAxis, self.rotationRate);
+            }
+
+            return self;
+        }
+
+        var Ellipsoid = function (asteroid) {
+            var self = new DefaultBody(asteroid);
+
+            self.scale = asteroid.scale || { a: 1.0, b: 1.0, c: 1.0 };
+
+            self.geometry = new THREE.SphereGeometry(self.radius, 30, 30);
+            self.geometry.applyMatrix(new THREE.Matrix4().makeScale(self.scale.a, self.scale.c, self.scale.b));
+
+            self.rotationAxis = asteroid.randomTumble ?
+                new THREE.Vector3(getRandomInt(0, 20), getRandomInt(0, 20), getRandomInt(0, 20)).normalize()
+                : new THREE.Vector3(Math.sin(self.axialTilt), Math.cos(self.axialTilt), 0).normalize();
+
             self.setup = function () {
                 self.mesh = new THREE.Mesh(self.geometry, self.material);
                 self.mesh.position.set(self.center.x, self.center.y, self.center.z);
@@ -359,9 +392,60 @@
                 self.mesh.castShadow = true;
             };
 
-            self.render = function () {
-                self.mesh.rotateOnAxis(self.rotationAxis, self.rotationRate);
-            }
+            self.setup();
+            return self;
+        };
+
+        var ContactBinary = function (asteroid) {
+            var self = new DefaultBody(asteroid);
+
+            self.renderShadows = true;
+
+            // TODO: experimenting with shape as for 3752 Camillo https://twitter.com/AreciboRadar/status/966158518272385030
+            // change default cameraPosition to: new THREE.Vector3(3, -542, 93);
+
+            self.lobe1 = new THREE.Mesh(new THREE.SphereGeometry(40, 30, 30), self.material);
+            self.lobe1.applyMatrix(new THREE.Matrix4().makeScale(2.2, 0.5, 1));
+            self.lobe1.position.set(-50, 0, 0);
+            self.lobe1.castShadow = self.lobe1.receiveShadow = true;
+
+            self.lobe2 = new THREE.Mesh(new THREE.SphereGeometry(40, 30, 30), self.material);
+            self.lobe2.applyMatrix(new THREE.Matrix4().makeScale(1.6, 0.5, 1));
+            self.lobe2.position.set(30, 0, 30);
+            self.lobe2.rotation.y = THREE.Math.degToRad(90);
+            self.lobe2.castShadow = self.lobe2.receiveShadow = true;
+
+
+            self.rotationAxis = asteroid.randomTumble ?
+                new THREE.Vector3(getRandomInt(0, 20), getRandomInt(0, 20), getRandomInt(0, 20)).normalize()
+                : new THREE.Vector3(Math.sin(self.axialTilt), Math.cos(self.axialTilt), 0).normalize();
+
+            self.setup = function () {
+                /** USING GROUPS **/
+                /*self.mesh = new THREE.Group();
+                self.mesh.add(self.lobe1);
+                self.mesh.add(self.lobe2);*/
+                /** **/
+
+                /** USING GEOM MERGE **/
+                var singleGeometry = new THREE.Geometry();
+                self.lobe1.updateMatrix();
+                singleGeometry.merge(self.lobe1.geometry, self.lobe1.matrix)
+                self.lobe2.updateMatrix();
+                singleGeometry.merge(self.lobe2.geometry, self.lobe2.matrix)
+
+                self.mesh = new THREE.Mesh(singleGeometry, self.material);
+                /** **/
+
+                /** EXPERIMENT USING CONSTRUCTIVE SOLID GEOMETRY (requires external ThreeCSG plugin)**/
+                /*var body1 = new ThreeBSP(self.lobe1);
+                var body2 = new ThreeBSP(self.lobe2);
+                self.mesh = body1.union(body2).toMesh(self.material);
+                self.mesh.castShadow = self.mesh.receiveShadow = true;*/
+                /** **/
+
+                self.mesh.position.set(self.center.x, self.center.y, self.center.z);
+            };
 
             self.setup();
             return self;
@@ -377,6 +461,11 @@
             }
 
             self.canvasViewModel = canvasViewModel;
+
+            if (self.urlParams.get('showAxes')) {
+                self.canvasViewModel.options.showAxes = true;
+            }
+
             self.lightcurveViewModel = lightcurveViewModel;
 			
             self.body = null;
@@ -394,14 +483,22 @@
             self.mustResetLightcurve = ko.observable(false);
 
             self.setupBodies = function () {
-                self.body = new Asteroid({
+                self.body = new Ellipsoid({
                     radius: 20,
                     rotationRate: 0.008,
-                    center: new THREE.Vector3(10, 0, 0),
-                    showAxis: false,
+                    center: new THREE.Vector3(0, 0, 0),
+                    showAxes: false,
                     scale: { a: parseFloat(self.a()), b: parseFloat(self.b()), c: parseFloat(self.c()) },
                     randomTumble: self.isTumbler(),
                 });
+                /*self.body = new ContactBinary({
+                    radius: 20,
+                    rotationRate: 0.008,
+                    center: new THREE.Vector3(0, 0, 0),
+                    showAxes: false,
+                    scale: { a: parseFloat(self.a()), b: parseFloat(self.b()), c: parseFloat(self.c()) },
+                    randomTumble: self.isTumbler(),
+                });*/
             };
 
             self.animationPaused = ko.observable(false);
@@ -427,7 +524,10 @@
 
                 self.lightcurveViewModel.mustCollectLightcurveData = self.mustCollectLightcurveData();
 
-				self.canvasViewModel.bodies = [self.body];
+                self.canvasViewModel.bodies = [self.body];
+
+                self.canvasViewModel.renderShadows = self.body.renderShadows;
+
 				self.canvasViewModel.init();
 				self.canvasViewModel.animate();
 			};
@@ -479,17 +579,6 @@
 		ko.applyBindings(viewModel, document.getElementById('toolbar'));
 
 		viewModel.startAnimation();
-		
-		
-        function init() {
-
-            // HELPERS
-
-            //scene.add(new THREE.AxesHelper(FAR));
-            //scene.add(new THREE.CameraHelper(camera));
-            //scene.add(new THREE.CameraHelper(sunLight.shadow.camera));
-
-        }
     </script>
 
 </body>
