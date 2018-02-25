@@ -200,7 +200,9 @@
 
                 //self.scene.add(new THREE.AmbientLight(0xffffff, 0.1));
 
-                //self.scene.add(new THREE.CameraHelper(self.light.shadow.camera));
+                if (self.options.showLight) {
+                    self.scene.add(new THREE.CameraHelper(self.light.shadow.camera));
+                }
             };
 
             self.animate = function () {
@@ -341,8 +343,12 @@
             self.renderShadows = false;
             self.texture = null;
             self.showAxes = asteroid.showAxes || false;
-            self.rotationRate = asteroid.rotationRate || 0.001;
+            self.rotationRate = asteroid.rotationRate || 0.008;
             self.axialTilt = THREE.Math.degToRad(self.axialTilt || 0);
+
+            self.center = asteroid.center || new THREE.Vector3(0, 0, 0);
+
+            self.phase = asteroid.phase || 0;
 
             if (self.textureFile) {
                 self.texture = THREE.ImageUtils.loadTexture(self.textureFile);
@@ -394,8 +400,10 @@
             self.setup = function () {
                 self.mesh = new THREE.Mesh(self.geometry, self.material);
                 self.mesh.position.set(self.center.x, self.center.y, self.center.z);
-                self.mesh.receiveShadow = true;
-                self.mesh.castShadow = true;
+
+                self.mesh.rotation.x = THREE.Math.degToRad(self.phase);
+
+                self.mesh.receiveShadow = self.mesh.castShadow = true;
             };
 
             self.setup();
@@ -407,19 +415,21 @@
 
             self.renderShadows = true;
 
-            // TODO: hardcoded to 67P lookalike, no "neck"
+            var mesh = new THREE.Mesh(new THREE.SphereGeometry(asteroid.lobe1.radius, 30, 30), self.material);
+            var scale = self.lobe1.scale;
+            mesh.applyMatrix(new THREE.Matrix4().makeScale(scale.a, scale.b, scale.c));
+            mesh.position.set(0, 0, 0);
+            mesh.castShadow = mesh.receiveShadow = true;
+            self.lobe1.mesh = mesh;
 
-            self.lobe1 = new THREE.Mesh(new THREE.SphereGeometry(40, 30, 30), self.material);
-            self.lobe1.applyMatrix(new THREE.Matrix4().makeScale(3, 1.2, 1));
-            self.lobe1.position.set(0, 0, 0);
-            self.lobe1.castShadow = self.lobe1.receiveShadow = true;
-
-            self.lobe2 = new THREE.Mesh(new THREE.SphereGeometry(30, 30, 30), self.material);
-            self.lobe2.applyMatrix(new THREE.Matrix4().makeScale(2.4, 1.1, 1));
-            self.lobe2.position.set(30, 70, 0);
-            //self.lobe2.rotation.y = THREE.Math.degToRad(90);
-            self.lobe2.castShadow = self.lobe2.receiveShadow = true;
-
+            mesh = new THREE.Mesh(new THREE.SphereGeometry(asteroid.lobe2.radius, 30, 30), self.material);
+            var scale = self.lobe2.scale;
+            mesh.applyMatrix(new THREE.Matrix4().makeScale(scale.a, scale.b, scale.c));
+            var shift = self.lobe2.shift;
+            mesh.position.set(shift.x, shift.y, shift.z);
+            mesh.rotation.y = THREE.Math.degToRad(self.lobe2.inclination);
+            mesh.castShadow = self.lobe2.receiveShadow = true;
+            self.lobe2.mesh = mesh;
 
             self.rotationAxis = asteroid.randomTumble ?
                 new THREE.Vector3(getRandomInt(0, 20), getRandomInt(0, 20), getRandomInt(0, 20)).normalize()
@@ -428,27 +438,28 @@
             self.setup = function () {
                 /** USING GROUPS **/
                 /*self.mesh = new THREE.Group();
-                self.mesh.add(self.lobe1);
-                self.mesh.add(self.lobe2);*/
+                self.mesh.add(self.lobe1.mesh);
+                self.mesh.add(self.lobe2.mesh);*/
                 /** **/
 
                 /** USING GEOM MERGE **/
                 var singleGeometry = new THREE.Geometry();
-                self.lobe1.updateMatrix();
-                singleGeometry.merge(self.lobe1.geometry, self.lobe1.matrix)
-                self.lobe2.updateMatrix();
-                singleGeometry.merge(self.lobe2.geometry, self.lobe2.matrix)
+                self.lobe1.mesh.updateMatrix();
+                singleGeometry.merge(self.lobe1.mesh.geometry, self.lobe1.mesh.matrix)
+                self.lobe2.mesh.updateMatrix();
+                singleGeometry.merge(self.lobe2.mesh.geometry, self.lobe2.mesh.matrix)
 
                 self.mesh = new THREE.Mesh(singleGeometry, self.material);
                 /** **/
 
                 /** EXPERIMENT USING CONSTRUCTIVE SOLID GEOMETRY (requires external ThreeCSG plugin)**/
-                /*var body1 = new ThreeBSP(self.lobe1);
-                var body2 = new ThreeBSP(self.lobe2);
+                /*var body1 = new ThreeBSP(self.lobe1.mesh);
+                var body2 = new ThreeBSP(self.lobe2.mesh);
                 self.mesh = body1.union(body2).toMesh(self.material);
                 self.mesh.castShadow = self.mesh.receiveShadow = true;*/
                 /** **/
 
+                self.mesh.rotation.x = THREE.Math.degToRad(self.phase);
                 self.mesh.position.set(self.center.x, self.center.y, self.center.z);
             };
 
@@ -471,6 +482,10 @@
                 self.canvasViewModel.options.showAxes = true;
             }
 
+            if (self.urlParams.get('showLight')) {
+                self.canvasViewModel.options.showLight = true;
+            }
+
             self.lightcurveViewModel = lightcurveViewModel;
 			
             self.body = null;
@@ -491,20 +506,25 @@
 
             self.setupBodies = function () {
                 if ('contactBinary' == self.model()) {
+                    // TODO: hardcoded to 67P lookalike, no "neck"
+
                     self.body = new ContactBinary({
-                        radius: 20,
-                        rotationRate: 0.008,
-                        center: new THREE.Vector3(0, 0, 0),
-                        showAxes: false,
-                        scale: { a: parseFloat(self.a()), b: parseFloat(self.b()), c: parseFloat(self.c()) },
+                        lobe1: {
+                            radius: 40,
+                            scale: { a: 3.0, b: 1.2, c: 1 },
+                        },
+                        lobe2: {
+                            radius: 30,
+                            scale: { a: 2.4, b: 1.1, c: 1 },
+                            shift: { x: 30, y: 70, z: 0},
+                            inclination: 0,
+                        },
                         randomTumble: self.isTumbler(),
                     });
                 } else {
                     self.body = new Ellipsoid({
                         radius: 20,
                         rotationRate: 0.008,
-                        center: new THREE.Vector3(0, 0, 0),
-                        showAxes: false,
                         scale: { a: parseFloat(self.a()), b: parseFloat(self.b()), c: parseFloat(self.c()) },
                         randomTumble: self.isTumbler(),
                     });
