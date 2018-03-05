@@ -12,69 +12,119 @@
 
     <div class="main container-fluid">
         <div class="row">
-            <div class="col-2">
-                <div class="row" style="height: 90vh">
-                    <div class="col-12" id="toolbar">
-                        <br />
-                        <div class="btn-toolbar d-flex justify-content-between" role="toolbar">
-                            <button class="btn btn-lg" data-bind="click: toggleAnimation">
-                                <span class="fa" aria-hidden="true" style="vertical-align: middle;"
-                                      data-bind="css: { 'fa-pause': !animationPaused(), 'fa-play': animationPaused }" />
-                            </button>
-                            <button class="btn btn-lg" data-bind="click: resetAnimation" title="Reset animation">
-                                <span class="fa fa-refresh" aria-hidden="true" style="vertical-align: middle;" />
-                            </button>
-                        </div>
-                        <br /><br />
-                        <div class="btn-toolbar d-flex justify-content-between" role="toolbar">
-                            <button class="btn btn-sm" data-bind="click: selectEllipsoidModel">Ellipsoid</button>
-                            <button class="btn btn-sm" data-bind="click: selectContactBinaryModel">Contact binary</button>
-                        </div>                            
-                        <br /><br />
-                        <div class="form-inline input-group input-group-sm" role="form"
-                             data-bind="visible: model() == 'ellipsoid'">
-                            <label>a: </label> <input class="form-control input-sm" autofocus type="text" data-bind="value: a" />
-                            <label>b: </label> <input class="form-control input-sm" autofocus type="text" data-bind="value: b" />
-                            <label>c: </label> <input class="form-control input-sm" autofocus type="text" data-bind="value: c" />
-                        </div>
-                        <br /><br />
-                        <ul class="nav nav-tabs">
-                            <li class="nav-item">
-                                <a href="#" class="nav-link" title="Advanced options" data-bind="click: function() { showAdvancedControls(!showAdvancedControls()) }">Advanced</a>
-                            </li>
-                        </ul>
-                        <div data-bind="visible: showAdvancedControls">
-                            <br />
-                            <input id="isTumbler" type="checkbox" data-bind="checked: isTumbler" /> <label for="isTumbler" title="Rotate around a random axis after resetting the animation"><small>Random rotation axis</small></label>
-                            <br />
-                            <input id="mustResetLightcurve" type="checkbox" data-bind="checked: mustResetLightcurve" /> <label for="mustResetLightcurve" title="Clear the current light curve after resetting the animation"><small>Reset light curve</small></label>
-                            <br />
-                            <input id="mustCollectLightcurveData" type="checkbox" data-bind="checked: mustCollectLightcurveData" /> <label for="mustCollectLightcurveData" title="Collect light curve data so that it can be exported after resetting the animation"><small>Collect lightcurve data</small></label>
-                            <br />
-                            <button class="btn btn-sm" data-bind="click: exportLightcurve">Export lightcurve</button>
-                            <br /><br />
-                            <textarea data-bind="text: lightcurveData"></textarea>
-                        </div>
+            <div class="col-3">
+                <div class="col-12" id="toolbar">
+                    <br />
+                    <div class="btn-toolbar d-flex justify-content-between" role="toolbar">
+                        <button class="btn btn-lg" data-bind="click: toggleAnimation">
+                            <span class="fa" aria-hidden="true" style="vertical-align: middle;"
+                                  data-bind="css: { 'fa-pause': !animationPaused(), 'fa-play': animationPaused }" />
+                        </button>
+                        <button class="btn btn-lg" data-bind="click: resetAnimation" title="Reset animation">
+                            <span class="fa fa-refresh" aria-hidden="true" style="vertical-align: middle;" />
+                        </button>
                     </div>
-                </div>
-                <div class="row" style="height: 10vh">
-                    <div class="col-12" id="statsContainer">
+                    <br /><br />
+                    <div class="btn-toolbar d-flex justify-content-between" role="toolbar">
+                        <button class="btn btn-sm" data-bind="click: selectEllipsoidModel">Ellipsoid</button>
+                        <button class="btn btn-sm" data-bind="click: selectContactBinaryModel">Contact binary</button>
+                    </div>
+                    <br /><br />
+                    <div data-bind="template: { name: model().toolsTemplate, data: model }">
+                    </div>
+                    <br /><br />
+                    <ul class="nav nav-tabs">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" title="Advanced options" data-bind="click: function() { showAdvancedControls(!showAdvancedControls()) }">Advanced</a>
+                        </li>
+                    </ul>
+                    <div data-bind="visible: showAdvancedControls">
+                        <br />
+                        <input id="isTumbler" type="checkbox" data-bind="checked: isTumbler" /> <label for="isTumbler" title="Rotate around a random axis after resetting the animation"><small>Random rotation axis</small></label>
+                        <br />
+                        <input id="mustResetLightcurve" type="checkbox" data-bind="checked: mustResetLightcurve" /> <label for="mustResetLightcurve" title="Clear the current light curve after resetting the animation"><small>Reset light curve</small></label>
+                        <br />
+                        <input id="mustCollectLightcurveData" type="checkbox" data-bind="checked: mustCollectLightcurveData" /> <label for="mustCollectLightcurveData" title="Collect light curve data so that it can be exported after resetting the animation"><small>Collect lightcurve data</small></label>
+                        <br />
+                        <button class="btn btn-sm" data-bind="click: exportLightcurve">Export lightcurve</button>
+                        <br /><br />
+                        <textarea data-bind="text: lightcurveData"></textarea>
                     </div>
                 </div>
             </div>
-            <div class="col-10">
+            <div class="col-9">
                 <div class="row" style="height: 20vh">
-                    <div class="col-12">
-                        <canvas id="lightcurveChart" style="width: 75%; height: 95%;"></canvas>
+                    <div class="col-10">
+                        <canvas id="lightcurveChart" style="width: 90%; height: 95%;"></canvas>
+                    </div>
+                    <div class="col-2" id="statsContainer">
                     </div>
                 </div>
                 <div class="row" style="height: 80vh">
                     <div class="col-12" id="ThreeJS">
                     </div>
                 </div>
-             </div>
+            </div>
         </div>
     </div>
+
+    <script type="text/html" id="ellipsoidTools">
+        <div class="form-inline input-group input-group-sm" role="form">
+            <label>a: </label>
+            <input class="form-control input-sm" autofocus type="text" data-bind="value: a" />
+            <label>b: </label>
+            <input class="form-control input-sm" autofocus type="text" data-bind="value: b" />
+            <label>c: </label>
+            <input class="form-control input-sm" autofocus type="text" data-bind="value: c" />
+        </div>
+    </script>
+
+    <script type="text/html" id="contactBinaryTools">
+        <div class="form-group">
+            <div class="row">
+                <label>Lobe 1</label>
+            </div>
+            <div class="form-inline input-group input-group-sm">
+                <label>a: </label>
+                <input class="form-control input-sm" autofocus type="text" data-bind="value: lobe1.scale.a" />
+                <label>b: </label>
+                <input class="form-control input-sm" autofocus type="text" data-bind="value: lobe1.scale.b" />
+                <label>c: </label>
+                <input class="form-control input-sm" autofocus type="text" data-bind="value: lobe1.scale.c" />
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="row">
+                <label>Lobe 2</label>
+            </div>
+            <div class="form-inline input-group input-group-sm">
+                <label>a: </label>
+                <input class="form-control input-sm" autofocus type="text" data-bind="value: lobe2.scale.a" />
+                <label>b: </label>
+                <input class="form-control input-sm" autofocus type="text" data-bind="value: lobe2.scale.b" />
+                <label>c: </label>
+                <input class="form-control input-sm" autofocus type="text" data-bind="value: lobe2.scale.c" />
+            </div>
+            <div class="row">
+                <label>Lobe 2 shift</label>
+            </div>
+            <div class="form-inline input-group input-group-sm">
+                <label>x: </label>
+                <input class="form-control input-sm" autofocus type="text" data-bind="value: lobe2.shift.x" />
+                <label>y: </label>
+                <input class="form-control input-sm" autofocus type="text" data-bind="value: lobe2.shift.y" />
+                <label>z: </label>
+                <input class="form-control input-sm" autofocus type="text" data-bind="value: lobe2.shift.z" />
+            </div>
+            <div class="row">
+                <label>Lobe 2 inclination</label>
+            </div>
+            <div class="form-inline input-group input-group-sm">
+                <label>inclination: </label>
+                <input class="form-control input-sm" autofocus type="text" data-bind="value: lobe2.inclination" />
+            </div>
+        </div>
+    </script>
 
     <script src="js/Three.js"></script>
     <script src="js/Detector.js"></script>
@@ -85,6 +135,7 @@
     <script src="js/THREEx.WindowResize.js"></script>
     <script src="js/Chart.min.js"></script>
     <script src="js/knockout.js"></script>
+    <script src="js/knockout_utils.js"></script>
     <script>
         const reducer = (accumulator, currentValue) => accumulator + currentValue;
 
@@ -225,7 +276,7 @@
 
                 if (0 == (self.numberOfFrames % 24)) {
                     self.frameListeners.forEach(function (listener) {
-                        listener.newFrameCheckpoint(self); 
+                        listener.newFrameCheckpoint(self);
                     })
                 }
             }
@@ -467,6 +518,66 @@
             return self;
         };
 
+        var EllipsoidViewModel = function (root) {
+            var self = this;
+
+            self.toolsTemplate = 'ellipsoidTools';
+
+            self.a = ko.observable(root.urlParams.get('a') || 8.0).extend({ numeric: 2 });
+            self.b = ko.observable(root.urlParams.get('b') || 3.0).extend({ numeric: 2 });
+            self.c = ko.observable(root.urlParams.get('c') || 1.0).extend({ numeric: 2 });
+
+            self.toBody = function () {
+                return new Ellipsoid({
+                    randomTumble: root.isTumbler(),
+                    radius: 20,
+                    scale: { a: parseFloat(self.a()), b: parseFloat(self.b()), c: parseFloat(self.c()) },
+                });
+            };
+
+            return self;
+        };
+
+        var ContactBinaryViewModel = function (root) {
+            var self = this;
+
+            self.toolsTemplate = 'contactBinaryTools';
+
+            self.lobe1 = {
+                radius: ko.observable(40.0).extend({ numeric: 2 }),
+                scale: {
+                    a: ko.observable(3.0).extend({ numeric: 2 }),
+                    b: ko.observable(1.2).extend({ numeric: 2 }),
+                    c: ko.observable(1.0).extend({ numeric: 2 }),
+                }
+            };
+
+            self.lobe2 = {
+                radius: ko.observable(30.0).extend({ numeric: 2 }),
+                scale: {
+                    a: ko.observable(2.4).extend({ numeric: 2 }),
+                    b: ko.observable(1.1).extend({ numeric: 2 }),
+                    c: ko.observable(1.0).extend({ numeric: 2 })
+                },
+                shift: {
+                    x: ko.observable(30.0).extend({ numeric: 2 }),
+                    y: ko.observable(70.0).extend({ numeric: 2 }),
+                    z: ko.observable(0.0).extend({ numeric: 2 })
+                },
+                inclination: ko.observable(0.0).extend({ numeric: 2 }),
+            };
+
+            self.toBody = function () {
+                return new ContactBinary({
+                    randomTumble: root.isTumbler(),
+                    lobe1: ko.toJS(self.lobe1),
+                    lobe2: ko.toJS(self.lobe2),
+                });
+            };
+
+            return self;
+        };
+
         var ToolbarViewModel = function (canvasViewModel, lightcurveViewModel) {
             var self = this;
 
@@ -487,12 +598,8 @@
             }
 
             self.lightcurveViewModel = lightcurveViewModel;
-			
-            self.body = null;
 
-            self.a = ko.observable(self.urlParams.get('a') || 8.0);
-            self.b = ko.observable(self.urlParams.get('b') || 3.0);
-            self.c = ko.observable(self.urlParams.get('c') || 1.0);
+            self.body = null;
 
             self.showAdvancedControls = ko.observable(self.urlParams.get('showAdvanced') || false);
 
@@ -502,48 +609,33 @@
             self.isTumbler = ko.observable(self.urlParams.get('isTumbler') || false);
             self.mustResetLightcurve = ko.observable(false);
 
-            self.model = ko.observable(self.urlParams.get('model') || 'ellipsoid');
+            self.modelName = ko.observable(self.urlParams.get('model') || 'ellipsoid');
+
+            self.ellipsoid = new EllipsoidViewModel(self);
+            self.contactBinary = new ContactBinaryViewModel(self);
+
+            self.model = ko.observable('contactBinary' == self.modelName() ?
+                self.contactBinary : self.ellipsoid);
 
             self.setupBodies = function () {
-                if ('contactBinary' == self.model()) {
-                    // TODO: hardcoded to 67P lookalike, no "neck"
-
-                    self.body = new ContactBinary({
-                        lobe1: {
-                            radius: 40,
-                            scale: { a: 3.0, b: 1.2, c: 1 },
-                        },
-                        lobe2: {
-                            radius: 30,
-                            scale: { a: 2.4, b: 1.1, c: 1 },
-                            shift: { x: 30, y: 70, z: 0},
-                            inclination: 0,
-                        },
-                        randomTumble: self.isTumbler(),
-                    });
-                } else {
-                    self.body = new Ellipsoid({
-                        radius: 20,
-                        rotationRate: 0.008,
-                        scale: { a: parseFloat(self.a()), b: parseFloat(self.b()), c: parseFloat(self.c()) },
-                        randomTumble: self.isTumbler(),
-                    });
-                }
+                self.body = self.model().toBody();
             };
 
             self.selectEllipsoidModel = function () {
-                self.model('ellipsoid');
+                self.model(self.ellipsoid);
+                self.modelName('ellipsoid');
                 self.resetAnimation();
             };
 
             self.selectContactBinaryModel = function () {
-                self.model('contactBinary');
+                self.model(self.contactBinary);
+                self.modelName('contactBinary')
                 self.resetAnimation();
             };
 
             self.animationPaused = ko.observable(false);
-            
-            self.animationPauseTrigger = ko.computed(function() {
+
+            self.animationPauseTrigger = ko.computed(function () {
                 var paused = self.animationPaused();
                 if (paused == self.canvasViewModel.paused) { return; }
 
@@ -568,36 +660,36 @@
 
                 self.canvasViewModel.renderShadows = self.body.renderShadows;
 
-				self.canvasViewModel.init();
-				self.canvasViewModel.animate();
-			};
+                self.canvasViewModel.init();
+                self.canvasViewModel.animate();
+            };
 
-			self.resetAnimation = function () {
-			    var scene = self.canvasViewModel.scene;
+            self.resetAnimation = function () {
+                var scene = self.canvasViewModel.scene;
 
-			    self.animationPaused(true);
+                self.animationPaused(true);
 
-			    self.canvasViewModel.bodies.forEach(function (x, i) {
-			        scene.remove(x.mesh);
-			    });
+                self.canvasViewModel.bodies.forEach(function (x, i) {
+                    scene.remove(x.mesh);
+                });
 
-			    self.setupBodies();
+                self.setupBodies();
 
-			    self.lightcurveViewModel.resetFlux();
-			    self.lightcurveViewModel.mustCollectLightcurveData = self.mustCollectLightcurveData();
+                self.lightcurveViewModel.resetFlux();
+                self.lightcurveViewModel.mustCollectLightcurveData = self.mustCollectLightcurveData();
 
-			    if (self.mustResetLightcurve()) {
-			        self.lightcurveViewModel.chart.data.labels = [];
-			    }
+                if (self.mustResetLightcurve()) {
+                    self.lightcurveViewModel.chart.data.labels = [];
+                }
 
-			    self.canvasViewModel.bodies = [self.body];
-			    self.canvasViewModel.drawBodies();
-			    self.animationPaused(false);
-			};
-			
-			self.exportLightcurve = function () {
-			    self.lightcurveData(self.lightcurveViewModel.flux);
-			};
+                self.canvasViewModel.bodies = [self.body];
+                self.canvasViewModel.drawBodies();
+                self.animationPaused(false);
+            };
+
+            self.exportLightcurve = function () {
+                self.lightcurveData(self.lightcurveViewModel.flux);
+            };
 
             return self;
         };
@@ -614,11 +706,11 @@
             }
         );
 
-		var viewModel = new ToolbarViewModel(canvasViewModel, lightcurveViewModel);
+        var viewModel = new ToolbarViewModel(canvasViewModel, lightcurveViewModel);
 
-		ko.applyBindings(viewModel, document.getElementById('toolbar'));
+        ko.applyBindings(viewModel, document.getElementById('toolbar'));
 
-		viewModel.startAnimation();
+        viewModel.startAnimation();
     </script>
 
 </body>
