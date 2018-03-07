@@ -24,3 +24,12 @@ body, html, .main {
 .btn-toolbar .btn:last-child {
 	margin-right: 0;
 }
+
+.tightFormGroup {
+	border: solid thin black;
+	padding: 4px;
+}
+
+	.tightFormGroup .form-inline {
+		margin-bottom: 8px;
+	}
