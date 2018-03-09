@@ -32,6 +32,17 @@
                     <br />
                     <div data-bind="template: { name: model().toolsTemplate, data: model }">
                     </div>
+                    <div class="form-group tightFormGroup">
+                        <label>Initial angle</label>
+                        <div class="form-inline input-group input-group-sm">
+                            <label>x: </label>
+                            <input class="form-control input-sm" autofocus type="text" data-bind="value: model().initialAngle[0]" />
+                            <label>y: </label>
+                            <input class="form-control input-sm" autofocus type="text" data-bind="value: model().initialAngle[1]" />
+                            <label>z: </label>
+                            <input class="form-control input-sm" autofocus type="text" data-bind="value: model().initialAngle[2]" />
+                        </div>
+                    </div>
                     <ul class="nav nav-tabs">
                         <li class="nav-item">
                             <a href="#" class="nav-link" title="Advanced options" data-bind="click: function() { showAdvancedControls(!showAdvancedControls()) }">Advanced</a>
@@ -69,6 +80,7 @@
 
     <script type="text/html" id="ellipsoidTools">
         <div class="form-group tightFormGroup">
+            <label>Dimensions</label>
             <div class="form-inline input-group input-group-sm" role="form">
                 <label>a: </label>
                 <input class="form-control input-sm" autofocus type="text" data-bind="value: a" />
@@ -82,7 +94,7 @@
 
     <script type="text/html" id="contactBinaryTools">
         <div class="form-group tightFormGroup">
-            <label>Lobe 1</label>
+            <label>Lobe 1 dimensions</label>
             <div class="form-inline input-group input-group-sm">
                 <label>a: </label>
                 <input class="form-control input-sm" autofocus type="text" data-bind="value: lobe1.scale.a" />
@@ -282,7 +294,6 @@
         var LightcurveViewModel = function (container) {
             var self = this;
 
-            self.t = 0;
             self.canvasWidth = 0;
             self.canvasHeight = 0;
 
@@ -294,52 +305,56 @@
                 self.flux = [];
             }
 
-            self.resetFlux();
+            self.reset = function () {
+                self.t = 0;
 
-            self.canvasContext = self.container.getContext('2d');
+                self.resetFlux();
 
-            var chartConfig = {
-                labels: [],
-                datasets: [
-                    {
-                        label: 'Light curve',
-                        fill: true,
-                        lineTension: 0.1,
-                        backgroundColor: 'rgba(75,192,192,0.4)',
-                        borderColor: 'rgba(75,192,192,1)',
-                        borderCapStyle: 'butt',
-                        borderDash: [],
-                        borderDashOffset: 0.0,
-                        borderJoinStyle: 'miter',
-                        pointBorderColor: 'rgba(75,192,192,1)',
-                        pointBackgroundColor: '#fff',
-                        pointBorderWidth: 1,
-                        pointHoverRadius: 5,
-                        pointHoverBackgroundColor: 'rgba(75,192,192,1)',
-                        pointHoverBorderColor: 'rgba(220,220,220,1)',
-                        pointHoverBorderWidth: 2,
-                        pointRadius: 1,
-                        pointHitRadius: 10,
-                        data: [],
-                        spanGaps: false,
+                self.canvasContext = self.container.getContext('2d');
+
+                var chartConfig = {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Light curve',
+                            fill: true,
+                            lineTension: 0.1,
+                            backgroundColor: 'rgba(75,192,192,0.4)',
+                            borderColor: 'rgba(75,192,192,1)',
+                            borderCapStyle: 'butt',
+                            borderDash: [],
+                            borderDashOffset: 0.0,
+                            borderJoinStyle: 'miter',
+                            pointBorderColor: 'rgba(75,192,192,1)',
+                            pointBackgroundColor: '#fff',
+                            pointBorderWidth: 1,
+                            pointHoverRadius: 5,
+                            pointHoverBackgroundColor: 'rgba(75,192,192,1)',
+                            pointHoverBorderColor: 'rgba(220,220,220,1)',
+                            pointHoverBorderWidth: 2,
+                            pointRadius: 1,
+                            pointHitRadius: 10,
+                            data: [],
+                            spanGaps: false,
+                        }
+                    ]
+                };
+
+                self.chart = new Chart(self.canvasContext, {
+                    type: 'line',
+                    data: chartConfig,
+                    options: {
+                        responsive: false,
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    beginAtZero: false
+                                }
+                            }]
+                        }
                     }
-                ]
-            };
-
-            self.chart = new Chart(self.canvasContext, {
-                type: 'line',
-                data: chartConfig,
-                options: {
-                    responsive: false,
-                    scales: {
-                        yAxes: [{
-                            ticks: {
-                                beginAtZero: false
-                            }
-                        }]
-                    }
-                }
-            });
+                });
+            }
 
             self.newFrameCheckpoint = function (canvasViewModel) {
                 var canvasContext = canvasViewModel.webglContext;
@@ -380,6 +395,7 @@
                 }
             };
 
+            self.reset();
             return self;
         };
 
@@ -394,7 +410,7 @@
 
             self.center = asteroid.center || new THREE.Vector3(0, 0, 0);
 
-            self.phase = asteroid.phase || 0;
+            self.initialAngle = asteroid.initialAngle || [0, 0, 0];
 
             if (self.textureFile) {
                 self.texture = THREE.ImageUtils.loadTexture(self.textureFile);
@@ -447,7 +463,9 @@
                 self.mesh = new THREE.Mesh(self.geometry, self.material);
                 self.mesh.position.set(self.center.x, self.center.y, self.center.z);
 
-                self.mesh.rotation.x = THREE.Math.degToRad(self.phase);
+                self.mesh.rotation.set.apply(self.mesh.rotation,
+                    self.initialAngle.map(angle => THREE.Math.degToRad(angle))
+                );
 
                 self.mesh.receiveShadow = self.mesh.castShadow = true;
             };
@@ -505,7 +523,10 @@
                 self.mesh.castShadow = self.mesh.receiveShadow = true;*/
                 /** **/
 
-                self.mesh.rotation.x = THREE.Math.degToRad(self.phase);
+                self.mesh.rotation.set.apply(self.mesh.rotation,
+                    self.initialAngle.map(angle => THREE.Math.degToRad(angle))
+                );
+
                 self.mesh.position.set(self.center.x, self.center.y, self.center.z);
             };
 
@@ -522,8 +543,11 @@
             self.b = ko.observable(root.urlParams.get('b') || 3.0).extend({ numeric: 2 });
             self.c = ko.observable(root.urlParams.get('c') || 1.0).extend({ numeric: 2 });
 
+            self.initialAngle = [ko.observable(0), ko.observable(0), ko.observable(0)];
+
             self.toBody = function () {
                 return new Ellipsoid({
+                    initialAngle: self.initialAngle.map(angle => ko.unwrap(angle)),
                     randomTumble: root.isTumbler(),
                     radius: 20,
                     scale: { a: parseFloat(self.a()), b: parseFloat(self.b()), c: parseFloat(self.c()) },
@@ -562,8 +586,11 @@
                 inclination: ko.observable(0.0).extend({ numeric: 2 }),
             };
 
+            self.initialAngle = [ko.observable(0), ko.observable(0), ko.observable(0)];
+
             self.toBody = function () {
                 return new ContactBinary({
+                    initialAngle: self.initialAngle.map(angle => ko.unwrap(angle)),
                     randomTumble: root.isTumbler(),
                     lobe1: ko.toJS(self.lobe1),
                     lobe2: ko.toJS(self.lobe2),
@@ -674,7 +701,9 @@
                 self.lightcurveViewModel.mustCollectLightcurveData = self.mustCollectLightcurveData();
 
                 if (self.mustResetLightcurve()) {
-                    self.lightcurveViewModel.chart.data.labels = [];
+                    //self.lightcurveViewModel.chart.data.labels = [];
+                    //self.lightcurveViewModel.t = 0;
+                    self.lightcurveViewModel.reset();
                 }
 
                 self.canvasViewModel.bodies = [self.body];
